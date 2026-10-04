@@ -55,7 +55,6 @@ public class AuthService implements IAuthService {
                 .lastName(request.lastName())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .phone(request.phone())
                 .enabled(true)
                 .role(Role.TRAVELER)
                 .build();
