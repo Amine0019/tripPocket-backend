@@ -2,6 +2,7 @@ package tn.esprit.trippocketbackend.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import tn.esprit.trippocketbackend.entities.Role;
@@ -16,6 +17,7 @@ import java.util.Objects;
 public class UserService implements IUserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public User createUser(User user) {
@@ -28,6 +30,9 @@ public class UserService implements IUserService {
         }
         if (user.getRole() == null) {
             user.setRole(Role.TRAVELER);
+        }
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
         return userRepository.save(user);
@@ -62,7 +67,7 @@ public class UserService implements IUserService {
         existingUser.setRole(user.getRole());
 
         if (user.getPassword() != null) {
-            existingUser.setPassword(user.getPassword());
+            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
         return userRepository.save(existingUser);
