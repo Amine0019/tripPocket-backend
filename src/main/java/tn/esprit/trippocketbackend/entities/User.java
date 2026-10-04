@@ -44,7 +44,7 @@ public class User {
     private String password;
 
     private String phone;
-    
+
     private Boolean enabled;
 
     @Enumerated(EnumType.STRING)
