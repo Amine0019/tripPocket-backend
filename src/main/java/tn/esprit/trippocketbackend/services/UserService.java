@@ -1,0 +1,76 @@
+package tn.esprit.trippocketbackend.services;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.trippocketbackend.entities.Role;
+import tn.esprit.trippocketbackend.entities.User;
+import tn.esprit.trippocketbackend.repositories.UserRepository;
+
+import java.util.List;
+import java.util.Objects;
+
+@Service
+@RequiredArgsConstructor
+public class UserService implements IUserService {
+
+    private final UserRepository userRepository;
+
+    @Override
+    public User createUser(User user) {
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+
+        if (user.getEnabled() == null) {
+            user.setEnabled(true);
+        }
+        if (user.getRole() == null) {
+            user.setRole(Role.TRAVELER);
+        }
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    @Override
+    public User updateUser(Long id, User user) {
+        User existingUser = getUserById(id);
+
+        if (user.getEmail() != null
+                && !Objects.equals(existingUser.getEmail(), user.getEmail())
+                && userRepository.existsByEmail(user.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+
+        existingUser.setFirstName(user.getFirstName());
+        existingUser.setLastName(user.getLastName());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setPhone(user.getPhone());
+        existingUser.setEnabled(user.getEnabled());
+        existingUser.setRole(user.getRole());
+
+        if (user.getPassword() != null) {
+            existingUser.setPassword(user.getPassword());
+        }
+
+        return userRepository.save(existingUser);
+    }
+
+    @Override
+    public void deleteUser(Long id) {
+        User user = getUserById(id);
+        userRepository.delete(user);
+    }
+}
