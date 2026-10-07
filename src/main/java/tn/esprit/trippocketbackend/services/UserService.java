@@ -22,7 +22,7 @@ public class UserService implements IUserService {
     @Override
     public User createUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already in use.");
         }
 
         if (user.getEnabled() == null) {
@@ -31,7 +31,7 @@ public class UserService implements IUserService {
         if (user.getRole() == null) {
             user.setRole(Role.TRAVELER);
         }
-        if (user.getPassword() != null) {
+        if (user.getPassword() != null && !user.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
@@ -62,6 +62,13 @@ public class UserService implements IUserService {
         existingUser.setFirstName(user.getFirstName());
         existingUser.setLastName(user.getLastName());
         existingUser.setEmail(user.getEmail());
+
+        if (user.getRole() != null) {
+            existingUser.setRole(user.getRole());
+        }
+        if (user.getEnabled() != null) {
+            existingUser.setEnabled(user.getEnabled());
+        }
 
         if (user.getPassword() != null && !user.getPassword().isBlank()) {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
