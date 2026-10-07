@@ -28,7 +28,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "Create a user")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<User> createUser(@jakarta.validation.Valid @RequestBody User user) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(user));
     }
 
@@ -46,7 +46,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a user")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @jakarta.validation.Valid @RequestBody User user) {
         return ResponseEntity.ok(userService.updateUser(id, user));
     }
 

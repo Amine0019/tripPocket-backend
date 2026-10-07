@@ -62,8 +62,6 @@ public class UserService implements IUserService {
         existingUser.setFirstName(user.getFirstName());
         existingUser.setLastName(user.getLastName());
         existingUser.setEmail(user.getEmail());
-        existingUser.setEnabled(user.getEnabled());
-        existingUser.setRole(user.getRole());
 
         if (user.getPassword() != null) {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));

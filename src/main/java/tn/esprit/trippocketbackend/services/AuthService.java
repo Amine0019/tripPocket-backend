@@ -94,6 +94,7 @@ public class AuthService implements IAuthService {
                 user.getRole().name(),
                 userDetails.getUsername(),
                 user.getFirstName(),
-                user.getLastName());
+                user.getLastName(),
+                user.getId());
     }
 }

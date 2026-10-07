@@ -35,14 +35,19 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.validation.constraints.NotBlank(message = "First name is required")
     private String firstName;
 
+    @jakarta.validation.constraints.NotBlank(message = "Last name is required")
     private String lastName;
 
+    @jakarta.validation.constraints.NotBlank(message = "Email is required")
+    @jakarta.validation.constraints.Email(message = "Email should be valid")
     @Column(nullable = false, unique = true)
     private String email;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @jakarta.validation.constraints.Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
     private Boolean enabled;
