@@ -34,6 +34,8 @@ public class AuthService implements IAuthService {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+        } catch (org.springframework.security.authentication.DisabledException exception) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This account is inactive. Please contact the administrator.");
         } catch (AuthenticationException exception) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
