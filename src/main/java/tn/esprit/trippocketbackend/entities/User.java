@@ -47,7 +47,7 @@ public class User {
     private String email;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @jakarta.validation.constraints.Size(min = 6, message = "Password must be at least 6 characters")
+    @jakarta.validation.constraints.Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
     private Boolean enabled;
