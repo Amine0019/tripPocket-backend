@@ -41,7 +41,7 @@ public class AuthService implements IAuthService {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        return createAuthResponse(userDetails, user.getRole());
+        return createAuthResponse(userDetails, user);
     }
 
     @Override
@@ -61,7 +61,7 @@ public class AuthService implements IAuthService {
 
         User savedUser = userRepository.save(user);
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
-        return createAuthResponse(userDetails, Role.TRAVELER);
+        return createAuthResponse(userDetails, savedUser);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class AuthService implements IAuthService {
 
             User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
-            return createAuthResponse(userDetails, user.getRole());
+            return createAuthResponse(userDetails, user);
         } catch (ResponseStatusException exception) {
             throw exception;
         } catch (RuntimeException exception) {
@@ -87,11 +87,13 @@ public class AuthService implements IAuthService {
         }
     }
 
-    private AuthResponse createAuthResponse(UserDetails userDetails, Role role) {
+    private AuthResponse createAuthResponse(UserDetails userDetails, User user) {
         return new AuthResponse(
                 jwtUtil.generateToken(userDetails),
                 jwtUtil.generateRefreshToken(userDetails),
-                role.name(),
-                userDetails.getUsername());
+                user.getRole().name(),
+                userDetails.getUsername(),
+                user.getFirstName(),
+                user.getLastName());
     }
 }
