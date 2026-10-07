@@ -56,14 +56,14 @@ public class UserService implements IUserService {
         if (user.getEmail() != null
                 && !Objects.equals(existingUser.getEmail(), user.getEmail())
                 && userRepository.existsByEmail(user.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already in use.");
         }
 
         existingUser.setFirstName(user.getFirstName());
         existingUser.setLastName(user.getLastName());
         existingUser.setEmail(user.getEmail());
 
-        if (user.getPassword() != null) {
+        if (user.getPassword() != null && !user.getPassword().isBlank()) {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 

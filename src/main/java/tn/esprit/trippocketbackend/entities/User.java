@@ -42,7 +42,7 @@ public class User {
     private String lastName;
 
     @jakarta.validation.constraints.NotBlank(message = "Email is required")
-    @jakarta.validation.constraints.Email(message = "Email should be valid")
+    @jakarta.validation.constraints.Email(message = "Email format is invalid")
     @Column(nullable = false, unique = true)
     private String email;
 
