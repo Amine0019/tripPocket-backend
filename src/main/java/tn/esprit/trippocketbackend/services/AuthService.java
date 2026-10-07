@@ -47,7 +47,7 @@ public class AuthService implements IAuthService {
     @Override
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already in use.");
         }
 
         User user = User.builder()
