@@ -20,6 +20,11 @@ import tn.esprit.trippocketbackend.dto.ResetPasswordRequest;
 import tn.esprit.trippocketbackend.services.IAuthService;
 import tn.esprit.trippocketbackend.services.PasswordResetService;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.Map;
 
 @RestController
@@ -34,19 +39,61 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Authenticate a user")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+        AuthResponse response = authService.login(request);
+        long maxAge = request.rememberMe() ? 30L * 24 * 3600 : 24L * 3600;
+        ResponseCookie cookie = createRefreshTokenCookie(response.refreshToken(), maxAge);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
     }
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+        AuthResponse response = authService.register(request);
+        ResponseCookie cookie = createRefreshTokenCookie(response.refreshToken(), 24L * 3600);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "Refresh an access token")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
-        return ResponseEntity.ok(authService.refresh(request));
+    public ResponseEntity<AuthResponse> refresh(
+            @RequestBody(required = false) RefreshRequest request,
+            @CookieValue(name = "trippocket_refresh_token", required = false) String cookieToken) {
+        String token = (request != null && request.refreshToken() != null && !request.refreshToken().isBlank())
+                ? request.refreshToken()
+                : cookieToken;
+
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token is missing");
+        }
+
+        AuthResponse response = authService.refresh(new RefreshRequest(token));
+        ResponseCookie cookie = createRefreshTokenCookie(response.refreshToken(), 30L * 24 * 3600);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout user and revoke refresh token")
+    public ResponseEntity<Map<String, String>> logout(
+            @RequestBody(required = false) RefreshRequest request,
+            @CookieValue(name = "trippocket_refresh_token", required = false) String cookieToken) {
+        String token = (request != null && request.refreshToken() != null && !request.refreshToken().isBlank())
+                ? request.refreshToken()
+                : cookieToken;
+
+        if (token != null && !token.isBlank()) {
+            authService.logout(token);
+        }
+
+        ResponseCookie deleteCookie = createRefreshTokenCookie("", 0);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body(Map.of("message", "Successfully logged out"));
     }
 
     @PostMapping("/forgot-password")
@@ -66,6 +113,20 @@ public class AuthController {
     @PostMapping("/google")
     @Operation(summary = "Authenticate with Google credential")
     public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
-        return ResponseEntity.ok(authService.loginWithGoogle(request));
+        AuthResponse response = authService.loginWithGoogle(request);
+        ResponseCookie cookie = createRefreshTokenCookie(response.refreshToken(), 30L * 24 * 3600);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
+    }
+
+    private ResponseCookie createRefreshTokenCookie(String refreshToken, long maxAgeSeconds) {
+        return ResponseCookie.from("trippocket_refresh_token", refreshToken != null ? refreshToken : "")
+                .httpOnly(true)
+                .secure(false) // HTTP compatible for development
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .sameSite("Lax")
+                .build();
     }
 }

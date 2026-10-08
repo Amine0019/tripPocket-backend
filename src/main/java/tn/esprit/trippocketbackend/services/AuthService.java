@@ -35,6 +35,7 @@ public class AuthService implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final GoogleTokenVerifierService googleTokenVerifierService;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -50,7 +51,8 @@ public class AuthService implements IAuthService {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        return createAuthResponse(userDetails, user);
+        String rawRefreshToken = refreshTokenService.createRefreshToken(user, request.rememberMe());
+        return createAuthResponse(userDetails, user, rawRefreshToken);
     }
 
     @Override
@@ -70,30 +72,22 @@ public class AuthService implements IAuthService {
 
         User savedUser = userRepository.save(user);
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
-        return createAuthResponse(userDetails, savedUser);
+        String rawRefreshToken = refreshTokenService.createRefreshToken(savedUser, false);
+        return createAuthResponse(userDetails, savedUser, rawRefreshToken);
     }
 
     @Override
+    @Transactional
     public AuthResponse refresh(RefreshRequest request) {
-        try {
-            if (!jwtUtil.isRefreshToken(request.refreshToken())) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
-            }
-
-            String username = jwtUtil.extractUsername(request.refreshToken());
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (!jwtUtil.validateToken(request.refreshToken(), userDetails)) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
-            }
-
-            User user = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
-            return createAuthResponse(userDetails, user);
-        } catch (ResponseStatusException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        if (request == null || request.refreshToken() == null || request.refreshToken().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token is missing");
         }
+
+        RefreshTokenService.RotationResult result =
+                refreshTokenService.rotateRefreshToken(request.refreshToken());
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(result.user().getEmail());
+        return createAuthResponse(userDetails, result.user(), result.newRawToken());
     }
 
     @Override
@@ -152,13 +146,30 @@ public class AuthService implements IAuthService {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        return createAuthResponse(userDetails, user);
+        String rawRefreshToken = refreshTokenService.createRefreshToken(user, true);
+        return createAuthResponse(userDetails, user, rawRefreshToken);
     }
 
-    private AuthResponse createAuthResponse(UserDetails userDetails, User user) {
+    @Override
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.revokeToken(refreshToken);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void logoutAll(Long userId) {
+        if (userId != null) {
+            refreshTokenService.revokeAllUserTokens(userId);
+        }
+    }
+
+    private AuthResponse createAuthResponse(UserDetails userDetails, User user, String refreshToken) {
         return new AuthResponse(
                 jwtUtil.generateToken(userDetails),
-                jwtUtil.generateRefreshToken(userDetails),
+                refreshToken,
                 user.getRole().name(),
                 userDetails.getUsername(),
                 user.getFirstName(),

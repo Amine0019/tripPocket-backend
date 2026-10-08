@@ -31,6 +31,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final RefreshTokenService refreshTokenService;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -125,6 +126,9 @@ public class PasswordResetService {
 
         // Also invalidate any remaining active tokens for this user
         tokenRepository.invalidateAllForUser(user.getId());
+
+        // Revoke all active refresh token sessions for this user
+        refreshTokenService.revokeAllUserTokens(user.getId());
 
         log.info("Password reset completed for user id={}", user.getId());
     }
