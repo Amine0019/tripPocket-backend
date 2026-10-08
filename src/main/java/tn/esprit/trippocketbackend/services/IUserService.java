@@ -17,5 +17,5 @@ public interface IUserService {
 
     void deleteUser(Long id);
 
-    List<UserSearchResponse> searchUsers(String firstName, String lastName, String email);
+    List<UserSearchResponse> searchUsers(String email);
 }

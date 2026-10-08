@@ -86,13 +86,9 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public List<UserSearchResponse> searchUsers(String firstName, String lastName, String email) {
-        // Normalize null criteria to empty string so JPQL condition "= ''" acts as a wildcard
-        String fn = firstName != null ? firstName.trim() : "";
-        String ln = lastName  != null ? lastName.trim()  : "";
-        String em = email     != null ? email.trim()     : "";
-
-        return userRepository.searchByMultiCriteria(fn, ln, em)
+    public List<UserSearchResponse> searchUsers(String email) {
+        String em = email != null ? email.trim() : "";
+        return userRepository.searchByEmail(em)
                 .stream()
                 .map(u -> UserSearchResponse.builder()
                         .firstName(u.getFirstName())

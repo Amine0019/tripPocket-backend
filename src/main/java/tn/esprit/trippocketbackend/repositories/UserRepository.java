@@ -18,11 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("""
             SELECT u FROM User u
-            WHERE (:firstName = '' OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :firstName, '%')))
-              AND (:lastName  = '' OR LOWER(u.lastName)  LIKE LOWER(CONCAT('%', :lastName,  '%')))
-              AND (:email     = '' OR LOWER(u.email)     LIKE LOWER(CONCAT('%', :email,     '%')))
+            WHERE (:email = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%')))
             """)
-    List<User> searchByMultiCriteria(@Param("firstName") String firstName,
-                                     @Param("lastName")  String lastName,
-                                     @Param("email")     String email);
+    List<User> searchByEmail(@Param("email") String email);
 }

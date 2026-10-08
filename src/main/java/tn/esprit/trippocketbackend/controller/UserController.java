@@ -41,12 +41,10 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Search users by first name, last name and/or email (multi-criteria, backend)")
+    @Operation(summary = "Search users by email")
     public ResponseEntity<List<UserSearchResponse>> searchUsers(
-            @RequestParam(required = false, defaultValue = "") String firstName,
-            @RequestParam(required = false, defaultValue = "") String lastName,
             @RequestParam(required = false, defaultValue = "") String email) {
-        return ResponseEntity.ok(userService.searchUsers(firstName, lastName, email));
+        return ResponseEntity.ok(userService.searchUsers(email));
     }
 
     @GetMapping("/{id}")
