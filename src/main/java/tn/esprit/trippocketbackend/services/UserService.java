@@ -5,12 +5,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.trippocketbackend.dto.UserSearchResponse;
 import tn.esprit.trippocketbackend.entities.Role;
 import tn.esprit.trippocketbackend.entities.User;
 import tn.esprit.trippocketbackend.repositories.UserRepository;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -82,4 +84,24 @@ public class UserService implements IUserService {
         User user = getUserById(id);
         userRepository.delete(user);
     }
+
+    @Override
+    public List<UserSearchResponse> searchUsers(String firstName, String lastName, String email) {
+        // Normalize null criteria to empty string so JPQL condition "= ''" acts as a wildcard
+        String fn = firstName != null ? firstName.trim() : "";
+        String ln = lastName  != null ? lastName.trim()  : "";
+        String em = email     != null ? email.trim()     : "";
+
+        return userRepository.searchByMultiCriteria(fn, ln, em)
+                .stream()
+                .map(u -> UserSearchResponse.builder()
+                        .firstName(u.getFirstName())
+                        .lastName(u.getLastName())
+                        .email(u.getEmail())
+                        .role(u.getRole())
+                        .enabled(u.getEnabled())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }
+

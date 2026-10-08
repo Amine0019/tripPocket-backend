@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tn.esprit.trippocketbackend.dto.UserSearchResponse;
 import tn.esprit.trippocketbackend.entities.User;
 import tn.esprit.trippocketbackend.services.IUserService;
 
@@ -36,6 +38,15 @@ public class UserController {
     @Operation(summary = "Get all users")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search users by first name, last name and/or email (multi-criteria, backend)")
+    public ResponseEntity<List<UserSearchResponse>> searchUsers(
+            @RequestParam(required = false, defaultValue = "") String firstName,
+            @RequestParam(required = false, defaultValue = "") String lastName,
+            @RequestParam(required = false, defaultValue = "") String email) {
+        return ResponseEntity.ok(userService.searchUsers(firstName, lastName, email));
     }
 
     @GetMapping("/{id}")
