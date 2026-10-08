@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tn.esprit.trippocketbackend.dto.PageResponse;
 import tn.esprit.trippocketbackend.dto.UserSearchResponse;
 import tn.esprit.trippocketbackend.entities.Role;
 import tn.esprit.trippocketbackend.entities.User;
@@ -36,9 +37,11 @@ public class UserController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    @Operation(summary = "Get paginated users")
+    public ResponseEntity<PageResponse<User>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(userService.getAllUsers(page, size));
     }
 
     @GetMapping("/search")

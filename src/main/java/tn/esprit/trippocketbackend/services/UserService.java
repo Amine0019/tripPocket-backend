@@ -1,10 +1,15 @@
 package tn.esprit.trippocketbackend.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.trippocketbackend.dto.PageResponse;
 import tn.esprit.trippocketbackend.dto.UserSearchResponse;
 import tn.esprit.trippocketbackend.entities.Role;
 import tn.esprit.trippocketbackend.entities.User;
@@ -38,6 +43,15 @@ public class UserService implements IUserService {
         }
 
         return userRepository.save(user);
+    }
+
+    @Override
+    public PageResponse<User> getAllUsers(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = size <= 0 ? 10 : size;
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("id").ascending());
+        Page<User> userPage = userRepository.findAll(pageable);
+        return PageResponse.from(userPage);
     }
 
     @Override
