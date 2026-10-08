@@ -55,7 +55,8 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/refresh",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password").permitAll()
+                                "/api/auth/reset-password",
+                                "/api/auth/google").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
