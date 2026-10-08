@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.trippocketbackend.dto.UserSearchResponse;
+import tn.esprit.trippocketbackend.entities.Role;
 import tn.esprit.trippocketbackend.entities.User;
 import tn.esprit.trippocketbackend.services.IUserService;
 
@@ -45,6 +46,13 @@ public class UserController {
     public ResponseEntity<List<UserSearchResponse>> searchUsers(
             @RequestParam(required = false, defaultValue = "") String email) {
         return ResponseEntity.ok(userService.searchUsers(email));
+    }
+
+    @GetMapping("/filter")
+    @Operation(summary = "Filter users by role (TRAVELER or ADMIN)")
+    public ResponseEntity<List<UserSearchResponse>> getUsersByRole(
+            @RequestParam Role role) {
+        return ResponseEntity.ok(userService.getUsersByRole(role));
     }
 
     @GetMapping("/{id}")

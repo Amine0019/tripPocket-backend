@@ -2,6 +2,7 @@ package tn.esprit.trippocketbackend.repositories;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import tn.esprit.trippocketbackend.entities.Role;
 import tn.esprit.trippocketbackend.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -21,4 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             WHERE (:email = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%')))
             """)
     List<User> searchByEmail(@Param("email") String email);
+
+    List<User> findByRole(Role role);
 }

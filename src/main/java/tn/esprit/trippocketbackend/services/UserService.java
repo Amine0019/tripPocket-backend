@@ -99,5 +99,18 @@ public class UserService implements IUserService {
                         .build())
                 .collect(Collectors.toList());
     }
-}
 
+    @Override
+    public List<UserSearchResponse> getUsersByRole(Role role) {
+        return userRepository.findByRole(role)
+                .stream()
+                .map(u -> UserSearchResponse.builder()
+                        .firstName(u.getFirstName())
+                        .lastName(u.getLastName())
+                        .email(u.getEmail())
+                        .role(u.getRole())
+                        .enabled(u.getEnabled())
+                        .build())
+                .collect(Collectors.toList());
+    }
+}
