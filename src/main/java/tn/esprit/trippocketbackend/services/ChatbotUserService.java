@@ -78,7 +78,7 @@ public class ChatbotUserService {
                     "The TripPocket AI assistant is not configured. Please set the GEMINI_API_KEY environment variable.");
         }
 
-        String apiKey = chatbotUserConfig.getApiKey().trim();
+        String apiKey = chatbotUserConfig.getApiKey() != null ? chatbotUserConfig.getApiKey().trim() : "";
 
         // Validate key is not a placeholder
         if (apiKey.startsWith("REPLACE_") || apiKey.equalsIgnoreCase("YOUR_KEY_HERE")) {

@@ -54,6 +54,7 @@ class ChatbotUserServiceTest {
     @DisplayName("Should throw BAD_REQUEST when user message is blank")
     void shouldThrowWhenMessageIsBlank() {
         when(chatbotUserConfig.isConfigured()).thenReturn(true);
+        when(chatbotUserConfig.getApiKey()).thenReturn("dummy-key");
 
         ChatbotUserRequest request = ChatbotUserRequest.builder()
                 .message("   ")
