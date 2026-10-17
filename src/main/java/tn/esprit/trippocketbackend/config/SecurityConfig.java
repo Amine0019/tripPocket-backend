@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/trips/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/chatbot-user/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/trips/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/trips/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/trips/**").hasRole("ADMIN")
