@@ -34,13 +34,13 @@ public class ChatbotUserService {
 
     private static final int MAX_HISTORY_MESSAGES = 10;
     private static final String SYSTEM_INSTRUCTION = """
-            You are TripPocket AI, the intelligent, friendly, and helpful travel companion and assistant for the TripPocket travel application.
+            You are TripPocket AI, the intelligent, friendly, and helpful travel assistant for the TripPocket travel application.
+            IMPORTANT: Always respond in clear, natural English, regardless of the language used by the user.
             Your mission:
             - Answer questions in natural language, offering expert travel tips, destination recommendations, and cultural insights.
             - Help travelers organize their ideas, pack efficiently, plan daily itineraries, and manage their trip budget.
             - Explain how to use TripPocket features: exploring trips, reserving activities, tracking expenses by category, and viewing traveler profiles.
             - Understand previous messages in the conversation to maintain a coherent and engaging dialogue.
-            - Automatically respond in the user's language (primarily French or English).
             - Keep a warm, polite, encouraging, and professional tone.
             - Use clean formatting (bullet points, bold highlights) when presenting lists or recommendations.
             - If asked about personal data or real-time external bookings that you don't possess, answer honestly and courteously without inventing details.
@@ -75,7 +75,7 @@ public class ChatbotUserService {
         if (!chatbotUserConfig.isConfigured()) {
             log.warn("Gemini API key is not configured. Request cannot be processed.");
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Le service d'assistance IA TripPocket n'est pas configuré. Veuillez définir la variable GEMINI_API_KEY.");
+                    "The TripPocket AI assistant is not configured. Please set the GEMINI_API_KEY environment variable.");
         }
 
         String apiKey = chatbotUserConfig.getApiKey().trim();
@@ -84,7 +84,7 @@ public class ChatbotUserService {
         if (apiKey.startsWith("REPLACE_") || apiKey.equalsIgnoreCase("YOUR_KEY_HERE")) {
             log.error("Gemini API key is still set to a placeholder value.");
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "La clé API Gemini n'a pas été configurée. Obtenez une clé sur https://aistudio.google.com/apikey et définissez GEMINI_API_KEY.");
+                    "The Gemini API key has not been configured. Get a key at https://aistudio.google.com/apikey and set GEMINI_API_KEY.");
         }
 
         // Safe diagnostic: log key prefix (first 3 chars) + key length, never the full key
@@ -94,7 +94,7 @@ public class ChatbotUserService {
 
         String userMessage = request.getMessage() != null ? request.getMessage().trim() : "";
         if (userMessage.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le message ne peut pas être vide.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The message cannot be empty.");
         }
 
         String modelToUse = getWorkingModel();
@@ -156,40 +156,40 @@ public class ChatbotUserService {
 
             if (status == 400) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Format de requête non supporté par Gemini. Veuillez réessayer avec un message différent.");
+                        "Request format not supported by Gemini. Please try again with a different message.");
             } else if (status == 401 || status == 403) {
                 log.error("Authentication failure (HTTP {}). Key prefix='{}...', key length={}. " +
                         "Verify the key was generated at https://aistudio.google.com/apikey " +
                         "and that the Generative Language API is enabled.",
                         status, keyPrefix, apiKey.length());
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                        "Clé API Gemini invalide ou refusée (HTTP " + status + "). " +
-                        "Vérifiez que votre clé a été générée depuis Google AI Studio et que l'API Generative Language est activée.");
+                        "Gemini API key invalid or rejected (HTTP " + status + "). " +
+                        "Verify that your key was generated from Google AI Studio and that the Generative Language API is enabled.");
             } else if (status == 404) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Modèle Gemini '" + modelToUse + "' introuvable. " +
-                        "Vérifiez le nom du modèle dans application.properties (gemini.api.model).");
+                        "Gemini model '" + modelToUse + "' not found. " +
+                        "Check the model name in application.properties (gemini.api.model).");
             } else if (status == 429) {
                 throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                        "Limite de requêtes Gemini atteinte. Veuillez patienter quelques instants.");
+                        "Gemini rate limit reached. Please wait a few moments before trying again.");
             } else if (status >= 500) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                        "Le service Gemini rencontre une indisponibilité momentanée (HTTP " + status + "). Veuillez réessayer.");
+                        "The Gemini service is temporarily unavailable (HTTP " + status + "). Please try again later.");
             }
 
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Erreur lors de la communication avec l'assistant IA (HTTP " + status + ").");
+                    "Error communicating with the AI assistant (HTTP " + status + ").");
 
         } catch (RestClientException e) {
             log.error("Network error reaching Gemini API: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT,
-                    "Impossible de joindre le service Gemini (délai d'attente dépassé ou erreur réseau).");
+                    "Unable to reach the Gemini service (timeout or network error).");
         } catch (ResponseStatusException rse) {
             throw rse;
         } catch (Exception e) {
             log.error("Unexpected error in ChatbotUserService", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Une erreur inattendue est survenue lors du traitement de votre message.");
+                    "An unexpected error occurred while processing your message.");
         }
     }
 
@@ -315,7 +315,7 @@ public class ChatbotUserService {
 
     private String parseGeminiResponse(String responseJson) {
         if (responseJson == null || responseJson.isBlank()) {
-            return "Je n'ai pas pu obtenir de réponse. Veuillez reformuler votre question.";
+            return "I couldn't get a response. Please try rephrasing your question.";
         }
 
         try {
@@ -339,13 +339,13 @@ public class ChatbotUserService {
 
             JsonNode promptFeedback = root.path("promptFeedback");
             if (promptFeedback.has("blockReason")) {
-                return "Votre message a été filtré pour des raisons de sécurité ou de modération. Veuillez reformuler votre question.";
+                return "Your message was filtered for safety or moderation reasons. Please try rephrasing your question.";
             }
 
         } catch (Exception e) {
             log.error("Error parsing Gemini response JSON", e);
         }
 
-        return "Je suis désolé, je n'ai pas pu formuler de réponse. N'hésitez pas à poser une autre question !";
+        return "I'm sorry, I couldn't formulate a response. Feel free to ask another question!";
     }
 }
