@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tn.esprit.trippocketbackend.dto.PageResponse;
+import tn.esprit.trippocketbackend.dto.ReservationAvailabilityResponse;
 import tn.esprit.trippocketbackend.dto.ReservationRequest;
 import tn.esprit.trippocketbackend.dto.ReservationResponse;
 import tn.esprit.trippocketbackend.dto.ReservationStatsResponse;
@@ -99,6 +100,28 @@ public class ReservationService implements IReservationService {
         Reservation reservation = findReservation(id);
         assertOwnerOrAdmin(reservation, "view");
         return ReservationResponse.from(reservation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReservationAvailabilityResponse getAvailability(Long tripId) {
+        Trip trip = findTrip(tripId);
+        Long bookedSum = reservationRepository.sumTravelersForTrip(
+                trip.getId(), ReservationType.TRIP, ReservationStatus.CANCELLED, -1L);
+        long booked = bookedSum == null ? 0 : bookedSum;
+
+        Integer groupSize = (trip.getGroupSize() == null || trip.getGroupSize() <= 0) ? null : trip.getGroupSize();
+        Integer spotsLeft = groupSize == null ? null : (int) Math.max(0, groupSize - booked);
+
+        String reason = notBookableReason(trip);
+        if (reason == null && trip.getPrice() == null) {
+            reason = "This trip has no price yet and cannot be booked";
+        }
+        if (reason == null && spotsLeft != null && spotsLeft == 0) {
+            reason = "This trip is fully booked";
+        }
+
+        return new ReservationAvailabilityResponse(trip.getId(), groupSize, booked, spotsLeft, reason == null, reason);
     }
 
     @Override
@@ -260,14 +283,21 @@ public class ReservationService implements IReservationService {
 
     /** A trip can be booked only while it is PLANNED (or has no status) and has not ended yet. */
     private void assertBookable(Trip trip) {
+        String reason = notBookableReason(trip);
+        if (reason != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, reason);
+        }
+    }
+
+    /** Why a trip cannot be booked at all, or null when it is open for booking. */
+    private String notBookableReason(Trip trip) {
         if (trip.getStatus() != null && trip.getStatus() != TripStatus.PLANNED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "This trip is " + trip.getStatus().name().toLowerCase(Locale.ROOT) + " and can no longer be booked");
+            return "This trip is " + trip.getStatus().name().toLowerCase(Locale.ROOT) + " and can no longer be booked";
         }
         if (trip.getEndDate() != null && trip.getEndDate().isBefore(LocalDate.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "This trip has already ended and can no longer be booked");
+            return "This trip has already ended and can no longer be booked";
         }
+        return null;
     }
 
     /** TRIP defaults to the trip start date; any date must stay inside the trip dates. */

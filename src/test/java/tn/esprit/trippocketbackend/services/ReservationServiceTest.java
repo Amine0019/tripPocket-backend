@@ -13,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
+import tn.esprit.trippocketbackend.dto.ReservationAvailabilityResponse;
 import tn.esprit.trippocketbackend.dto.ReservationRequest;
 import tn.esprit.trippocketbackend.dto.ReservationResponse;
 import tn.esprit.trippocketbackend.entities.PaymentMethod;
@@ -234,6 +235,38 @@ class ReservationServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         assertTrue(ex.getReason().startsWith("Reservation date must be within the trip dates"));
         verify(reservationRepository, never()).save(any());
+    }
+
+    // ───────────────────────── availability ─────────────────────────
+
+    @Test
+    @DisplayName("getAvailability - should return the spots left on the trip")
+    void getAvailability_SpotsLeft() {
+        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
+        when(reservationRepository.sumTravelersForTrip(10L, ReservationType.TRIP, ReservationStatus.CANCELLED, -1L))
+                .thenReturn(10L);
+
+        ReservationAvailabilityResponse result = reservationService.getAvailability(10L);
+
+        assertEquals(12, result.groupSize());
+        assertEquals(10L, result.booked());
+        assertEquals(2, result.spotsLeft());
+        assertTrue(result.bookable());
+        assertNull(result.reason());
+    }
+
+    @Test
+    @DisplayName("getAvailability - a full trip is not bookable")
+    void getAvailability_FullTrip() {
+        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
+        when(reservationRepository.sumTravelersForTrip(10L, ReservationType.TRIP, ReservationStatus.CANCELLED, -1L))
+                .thenReturn(12L);
+
+        ReservationAvailabilityResponse result = reservationService.getAvailability(10L);
+
+        assertEquals(0, result.spotsLeft());
+        assertFalse(result.bookable());
+        assertEquals("This trip is fully booked", result.reason());
     }
 
     // ───────────────────────── ownership ─────────────────────────

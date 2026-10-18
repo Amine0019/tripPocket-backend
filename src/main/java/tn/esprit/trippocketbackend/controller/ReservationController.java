@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.trippocketbackend.dto.PageResponse;
+import tn.esprit.trippocketbackend.dto.ReservationAvailabilityResponse;
 import tn.esprit.trippocketbackend.dto.ReservationRequest;
 import tn.esprit.trippocketbackend.dto.ReservationResponse;
 import tn.esprit.trippocketbackend.dto.ReservationStatsResponse;
@@ -51,6 +52,12 @@ public class ReservationController {
     public ResponseEntity<List<ReservationResponse>> getMyReservations(
             @RequestParam(required = false) ReservationStatus status) {
         return ResponseEntity.ok(reservationService.getMyReservations(status));
+    }
+
+    @GetMapping("/availability")
+    @Operation(summary = "Spots left and booking status of a trip")
+    public ResponseEntity<ReservationAvailabilityResponse> getAvailability(@RequestParam Long tripId) {
+        return ResponseEntity.ok(reservationService.getAvailability(tripId));
     }
 
     @GetMapping("/{id:\\d+}")

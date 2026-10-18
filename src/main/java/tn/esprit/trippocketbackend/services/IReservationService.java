@@ -1,6 +1,7 @@
 package tn.esprit.trippocketbackend.services;
 
 import tn.esprit.trippocketbackend.dto.PageResponse;
+import tn.esprit.trippocketbackend.dto.ReservationAvailabilityResponse;
 import tn.esprit.trippocketbackend.dto.ReservationRequest;
 import tn.esprit.trippocketbackend.dto.ReservationResponse;
 import tn.esprit.trippocketbackend.dto.ReservationStatsResponse;
@@ -17,6 +18,8 @@ public interface IReservationService {
     List<ReservationResponse> getMyReservations(ReservationStatus status);
 
     ReservationResponse getReservationById(Long id);
+
+    ReservationAvailabilityResponse getAvailability(Long tripId);
 
     ReservationResponse updateReservation(Long id, ReservationRequest request);
 
