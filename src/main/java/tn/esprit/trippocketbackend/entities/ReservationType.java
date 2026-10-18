@@ -5,5 +5,6 @@ public enum ReservationType {
     FLIGHT,
     TRAIN,
     RESTAURANT,
-    ACTIVITY
+    ACTIVITY,
+    TRIP
 }
