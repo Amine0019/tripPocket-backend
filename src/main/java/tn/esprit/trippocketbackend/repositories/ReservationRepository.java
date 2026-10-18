@@ -25,6 +25,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByConfirmationNumber(String confirmationNumber);
 
+    List<Reservation> findByUserIdAndTripIdOrderByReservationDateAscIdAsc(Long userId, Long tripId);
+
+    /** Every reservation with its trip (admin AI insights). */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.trip")
+    List<Reservation> findAllWithTrip();
+
     /**
      * Travelers already booked on a trip for a given reservation type, ignoring one status
      * (CANCELLED) and one reservation id (the one being modified, or -1 on creation).
