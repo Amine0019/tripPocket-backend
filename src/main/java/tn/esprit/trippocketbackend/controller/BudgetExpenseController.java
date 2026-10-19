@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tn.esprit.trippocketbackend.dto.SpendingInsightsResponse;
 import tn.esprit.trippocketbackend.entities.BudgetExpense;
 import tn.esprit.trippocketbackend.services.IBudgetExpenseService;
 
@@ -54,6 +55,12 @@ public class BudgetExpenseController {
         return ResponseEntity.ok(budgetExpenseService.getTotalByTripId(tripId));
     }
 
+    @GetMapping("/trip/{tripId}/insights")
+    @Operation(summary = "Get AI-powered spending insights for a trip")
+    public ResponseEntity<SpendingInsightsResponse> getSpendingInsights(@PathVariable Long tripId) {
+        return ResponseEntity.ok(budgetExpenseService.getSpendingInsights(tripId));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get a budget expense by ID")
     public ResponseEntity<BudgetExpense> getExpenseById(@PathVariable Long id) {
@@ -75,3 +82,4 @@ public class BudgetExpenseController {
         return ResponseEntity.noContent().build();
     }
 }
+

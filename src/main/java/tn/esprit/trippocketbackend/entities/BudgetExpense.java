@@ -32,6 +32,8 @@ public class BudgetExpense {
 
     private Double amount;
 
+    private String title;
+
     private LocalDate expenseDate;
 
     private String description;
