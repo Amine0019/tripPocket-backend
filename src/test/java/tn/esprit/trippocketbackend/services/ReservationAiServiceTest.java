@@ -10,6 +10,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import tn.esprit.trippocketbackend.dto.ReservationAiChatRequest;
+import tn.esprit.trippocketbackend.dto.ReservationAiChatRequest.BookingState;
+import tn.esprit.trippocketbackend.dto.ReservationAiChatRequest.Message;
+import tn.esprit.trippocketbackend.dto.ReservationAiChatResponse;
 import tn.esprit.trippocketbackend.dto.ReservationAiInsightsResponse;
 import tn.esprit.trippocketbackend.dto.ReservationAiParseRequest;
 import tn.esprit.trippocketbackend.dto.ReservationAiParseResponse;
@@ -254,5 +258,179 @@ class ReservationAiServiceTest {
         assertTrue(result.alerts().stream().anyMatch(a -> a.title().contains("waiting for confirmation")));
         assertFalse(result.recommendations().isEmpty());
         assertTrue(result.summary().contains("2 reservations"));
+    }
+    // ───────────────────────── booking chat ─────────────────────────
+
+    private void tripWithBookedTravelers(long booked) {
+        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
+        when(reservationRepository.sumTravelersForTrip(10L, ReservationType.TRIP, ReservationStatus.CANCELLED, -1L))
+                .thenReturn(booked);
+    }
+
+    private static ReservationAiChatRequest chatRequest(BookingState booking, String... texts) {
+        List<Message> messages = new java.util.ArrayList<>();
+        for (int i = 0; i < texts.length; i++) {
+            messages.add(new Message(i % 2 == 0 ? "user" : "assistant", texts[i]));
+        }
+        return new ReservationAiChatRequest(10L, messages, booking);
+    }
+
+    @Test
+    @DisplayName("chat - without API key, fills the booking step by step and asks for what is missing")
+    void chat_NoApiKey_FillsStepByStep() {
+        loginAsTraveler();
+        tripWithBookedTravelers(0L);
+        when(llmClient.isConfigured()).thenReturn(false);
+
+        ReservationAiChatResponse first = service.chat(chatRequest(null, "A hotel on day 2 for 2 people around $150"));
+
+        assertFalse(first.aiAvailable());
+        assertEquals(ReservationType.HOTEL, first.booking().type());
+        assertEquals(2, first.booking().travelers());
+        assertEquals(start.plusDays(1), first.booking().reservationDate());
+        assertEquals(150.0, first.booking().price());
+        assertEquals(List.of("paymentMethod"), first.missing());
+        assertFalse(first.ready());
+        assertTrue(first.suggestions().contains("Cash"));
+        assertTrue(first.reply().contains("pay"));
+
+        ReservationAiChatResponse second = service.chat(chatRequest(first.booking(),
+                "A hotel on day 2 for 2 people around $150", first.reply(), "cash"));
+
+        assertTrue(second.ready());
+        assertTrue(second.missing().isEmpty());
+        assertTrue(second.suggestions().isEmpty());
+        assertEquals(PaymentMethod.CASH, second.booking().paymentMethod());
+        assertEquals(ReservationType.HOTEL, second.booking().type(), "earlier fields are kept");
+        assertTrue(second.reply().contains("Review my booking"));
+        verify(llmClient, never()).complete(anyString(), anyString(), anyInt());
+    }
+
+    @Test
+    @DisplayName("chat - a bare number answers the travelers question")
+    void chat_NoApiKey_BareNumberMeansTravelers() {
+        loginAsTraveler();
+        tripWithBookedTravelers(0L);
+        when(llmClient.isConfigured()).thenReturn(false);
+
+        ReservationAiChatResponse result = service.chat(chatRequest(
+                new BookingState(ReservationType.ACTIVITY, null, start, null, null, null), "3"));
+
+        assertEquals(3, result.booking().travelers());
+        assertEquals(List.of("paymentMethod"), result.missing());
+    }
+
+    @Test
+    @DisplayName("chat - the AI answer is validated and merged with the fields already collected")
+    void chat_AiAnswer_IsValidatedAndMerged() {
+        loginAsTraveler();
+        tripWithBookedTravelers(0L);
+        when(llmClient.isConfigured()).thenReturn(true);
+        when(llmClient.complete(anyString(), anyString(), anyInt())).thenReturn(
+                "{\"reply\": \"Dinner for two, noted! Which evening?\", \"booking\": {\"type\": \"RESTAURANT\", "
+                        + "\"travelers\": null, \"reservationDate\": \"2000-01-01\", \"paymentMethod\": \"BITCOIN\", "
+                        + "\"price\": 60, \"notes\": null}}");
+
+        ReservationAiChatResponse result = service.chat(chatRequest(
+                new BookingState(null, 2, null, PaymentMethod.CASH, null, null), "dinner around $60"));
+
+        assertTrue(result.aiAvailable());
+        assertEquals("Dinner for two, noted! Which evening?", result.reply());
+        assertEquals(ReservationType.RESTAURANT, result.booking().type());
+        assertEquals(2, result.booking().travelers(), "kept from the conversation");
+        assertNull(result.booking().reservationDate(), "a date outside the trip is removed");
+        assertEquals(PaymentMethod.CASH, result.booking().paymentMethod(), "an invalid payment keeps the old one");
+        assertEquals(60.0, result.booking().price());
+        assertNull(result.booking().notes());
+        assertEquals(List.of("reservationDate"), result.missing());
+        assertFalse(result.ready());
+    }
+
+    @Test
+    @DisplayName("chat - a trip package cannot take more travelers than the spots left")
+    void chat_TripPackage_RespectsSpotsLeft() {
+        loginAsTraveler();
+        tripWithBookedTravelers(3L);   // 1 spot left out of 4
+        when(llmClient.isConfigured()).thenReturn(false);
+
+        ReservationAiChatResponse result = service.chat(chatRequest(null, "The whole trip for 4 people, paying cash"));
+
+        assertEquals(ReservationType.TRIP, result.booking().type());
+        assertEquals(1, result.spotsLeft());
+        assertNotNull(result.warning());
+        assertTrue(result.warning().contains("Only 1 spot"));
+        assertFalse(result.ready());
+        assertEquals(List.of("Just me"), result.suggestions());
+    }
+
+    @Test
+    @DisplayName("chat - when the AI accepts too many travelers, the reply explains the spots left")
+    void chat_AiIgnoresSpotsLeft_ReplyIsCorrected() {
+        loginAsTraveler();
+        tripWithBookedTravelers(2L);   // 2 spots left
+        when(llmClient.isConfigured()).thenReturn(true);
+        when(llmClient.complete(anyString(), anyString(), anyInt())).thenReturn(
+                "{\"reply\": \"Sure, the trip for 4. How would you like to pay?\", "
+                        + "\"booking\": {\"type\": \"TRIP\", \"travelers\": 4}}");
+
+        ReservationAiChatResponse result = service.chat(chatRequest(null, "the whole trip for 4 people"));
+
+        assertFalse(result.ready());
+        assertTrue(result.warning().contains("Only 2 spots"));
+        assertTrue(result.reply().contains("How many travelers"), result.reply());
+        assertEquals(List.of("Just me", "2 people"), result.suggestions());
+    }
+
+    @Test
+    @DisplayName("chat - fields the model missed are completed with the keywords")
+    void chat_AiMissesObviousFields_KeywordsFillTheGaps() {
+        loginAsTraveler();
+        tripWithBookedTravelers(0L);
+        when(llmClient.isConfigured()).thenReturn(true);
+        when(llmClient.complete(anyString(), anyString(), anyInt())).thenReturn(
+                "{\"reply\": \"What type of reservation would you like?\", \"booking\": {\"type\": null}}");
+
+        ReservationAiChatResponse result = service.chat(chatRequest(null, "dinner on day 2"));
+
+        assertTrue(result.aiAvailable());
+        assertEquals(ReservationType.RESTAURANT, result.booking().type());
+        assertEquals(start.plusDays(1), result.booking().reservationDate());
+        assertFalse(result.reply().contains("What type"), "the reply no longer asks for the type");
+        assertEquals("travelers", result.missing().get(0));
+    }
+
+    @Test
+    @DisplayName("chat - when the AI fails, the keywords answer is returned")
+    void chat_AiFailure_FallsBackToKeywords() {
+        loginAsTraveler();
+        tripWithBookedTravelers(0L);
+        when(llmClient.isConfigured()).thenReturn(true);
+        when(llmClient.complete(anyString(), anyString(), anyInt()))
+                .thenThrow(new ReservationLlmClient.LlmException("timeout"));
+
+        ReservationAiChatResponse result = service.chat(chatRequest(null, "a train for 2"));
+
+        assertFalse(result.aiAvailable());
+        assertEquals(ReservationType.TRAIN, result.booking().type());
+        assertEquals(2, result.booking().travelers());
+        assertEquals("reservationDate", result.missing().get(0));
+        assertFalse(result.suggestions().isEmpty());
+    }
+
+    @Test
+    @DisplayName("adminInsights - advice about pending bookings is dropped when nothing is pending")
+    void adminInsights_DropsPendingAdviceWhenNothingIsPending() {
+        Reservation confirmed = booking(1L, ReservationType.TRIP, start, ReservationStatus.CONFIRMED);
+        when(reservationRepository.findAllWithTrip()).thenReturn(List.of(confirmed));
+        when(tripRepository.findAll()).thenReturn(List.of(trip));
+        when(llmClient.isConfigured()).thenReturn(true);
+        when(llmClient.complete(anyString(), anyString(), anyInt())).thenReturn(
+                "{\"summary\": \"One confirmed booking.\", \"highlights\": [\"1 reservation\"], "
+                        + "\"recommendations\": [\"Confirm the pending booking for Sahara Escape\", \"Promote the remaining spots\"]}");
+
+        ReservationAiInsightsResponse result = service.adminInsights();
+
+        assertTrue(result.aiAvailable());
+        assertEquals(List.of("Promote the remaining spots"), result.recommendations());
     }
 }
