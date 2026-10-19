@@ -1,23 +1,39 @@
 package tn.esprit.trippocketbackend.services;
 
-import tn.esprit.trippocketbackend.entities.Reservation;
+import tn.esprit.trippocketbackend.dto.PageResponse;
+import tn.esprit.trippocketbackend.dto.ReservationAvailabilityResponse;
+import tn.esprit.trippocketbackend.dto.ReservationRequest;
+import tn.esprit.trippocketbackend.dto.ReservationResponse;
+import tn.esprit.trippocketbackend.dto.ReservationStatsResponse;
 import tn.esprit.trippocketbackend.entities.ReservationStatus;
+import tn.esprit.trippocketbackend.entities.ReservationType;
 
 import java.util.List;
 
 public interface IReservationService {
 
-    Reservation createReservation(Long tripId, Reservation reservation);
+    // ── Traveler (connected user) ──────────────────────────────────────
+    ReservationResponse createReservation(Long tripId, ReservationRequest request);
 
-    List<Reservation> getAllReservations();
+    List<ReservationResponse> getMyReservations(ReservationStatus status);
 
-    List<Reservation> getReservationsByTripId(Long tripId);
+    ReservationResponse getReservationById(Long id);
 
-    Reservation getReservationById(Long id);
+    ReservationAvailabilityResponse getAvailability(Long tripId);
 
-    Reservation updateReservation(Long id, Reservation reservation);
+    ReservationResponse updateReservation(Long id, ReservationRequest request);
 
-    Reservation updateStatus(Long id, ReservationStatus status);
+    ReservationResponse cancelReservation(Long id);
+
+    // ── Admin ──────────────────────────────────────────────────────────
+    PageResponse<ReservationResponse> searchReservations(ReservationStatus status, ReservationType type,
+                                                         Long tripId, String search, int page, int size);
+
+    List<ReservationResponse> getReservationsByTripId(Long tripId);
+
+    ReservationResponse updateStatus(Long id, ReservationStatus status);
 
     void deleteReservation(Long id);
+
+    ReservationStatsResponse getStats();
 }

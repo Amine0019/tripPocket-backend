@@ -84,7 +84,7 @@ public class GoogleTokenVerifierService {
                     picture
             );
 
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
             log.error("Error occurred while verifying Google token", e);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Failed to verify Google token: " + e.getMessage());
         }
