@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tn.esprit.trippocketbackend.dto.ReservationAiChatRequest;
+import tn.esprit.trippocketbackend.dto.ReservationAiChatResponse;
 import tn.esprit.trippocketbackend.dto.ReservationAiInsightsResponse;
 import tn.esprit.trippocketbackend.dto.ReservationAiParseRequest;
 import tn.esprit.trippocketbackend.dto.ReservationAiParseResponse;
@@ -19,7 +21,7 @@ import tn.esprit.trippocketbackend.services.IReservationAiService;
 
 /**
  * Reservation AI assistant. Kept under /api/reservations/ai (not /api/ai, which is admin-only)
- * so travelers can use the first two features.
+ * so travelers can use the trip check, the one-sentence form filling and the booking chat.
  */
 @RestController
 @RequestMapping("/api/reservations/ai")
@@ -39,6 +41,12 @@ public class ReservationAiController {
     @Operation(summary = "Turn one sentence into booking form values (nothing is saved)")
     public ResponseEntity<ReservationAiParseResponse> parseRequest(@Valid @RequestBody ReservationAiParseRequest request) {
         return ResponseEntity.ok(reservationAiService.parseRequest(request));
+    }
+
+    @PostMapping("/chat")
+    @Operation(summary = "Booking assistant: chat with the traveler and fill the booking form (nothing is saved)")
+    public ResponseEntity<ReservationAiChatResponse> chat(@Valid @RequestBody ReservationAiChatRequest request) {
+        return ResponseEntity.ok(reservationAiService.chat(request));
     }
 
     @PostMapping("/admin-insights")
