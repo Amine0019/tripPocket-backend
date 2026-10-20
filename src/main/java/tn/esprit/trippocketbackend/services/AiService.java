@@ -56,7 +56,7 @@ public class AiService {
     public AiTaglineResponse generateTagline(AiTaglineRequest request) {
         String keywords = clean(request == null ? null : request.keywords());
         if (keywords.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please enter 2-3 keywords");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please enter 2 or 3 keywords");
         }
 
         String system = """
