@@ -63,6 +63,13 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/actuator/health",
                                 "/error").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/trips/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/chatbot-user/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/trips/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/trips/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/trips/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/trips/**").hasRole("ADMIN")
+                        .requestMatchers("/api/ai/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

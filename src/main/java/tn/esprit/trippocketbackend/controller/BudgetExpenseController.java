@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.trippocketbackend.entities.BudgetExpense;
+import tn.esprit.trippocketbackend.dto.SpendingInsightsResponse;
 import tn.esprit.trippocketbackend.services.IBudgetExpenseService;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/expenses")
@@ -53,6 +55,21 @@ public class BudgetExpenseController {
     public ResponseEntity<Double> getTotalByTripId(@PathVariable Long tripId) {
         return ResponseEntity.ok(budgetExpenseService.getTotalByTripId(tripId));
     }
+
+    @GetMapping("/trip/{tripId}/insights")
+    @Operation(summary = "Get deterministic spending totals and AI observations for a trip")
+    public ResponseEntity<SpendingInsightsResponse> getSpendingInsights(@PathVariable Long tripId) {
+        return ResponseEntity.ok(budgetExpenseService.getSpendingInsights(tripId));
+    }
+
+    @PutMapping("/trip/{tripId}/budget")
+    @Operation(summary = "Set the spending budget for a trip")
+    public ResponseEntity<Void> saveTripBudget(@PathVariable Long tripId, @RequestBody BudgetRequest request) {
+        budgetExpenseService.saveTripBudget(tripId, request.amount());
+        return ResponseEntity.noContent().build();
+    }
+
+    public record BudgetRequest(BigDecimal amount) {}
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a budget expense by ID")
